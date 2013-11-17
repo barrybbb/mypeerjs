@@ -2338,7 +2338,7 @@ function Socket(secure, host, port, key) {
   var httpProtocol = secure ? 'https://' : 'http://';
   var wsProtocol = secure ? 'wss://' : 'ws://';
   this._httpUrl = httpProtocol + host + ':' + port + '/' + key;
-  this._wsUrl = wsProtocol + host + ':' + port + '/peerjs?key=' + key;
+  this._wsUrl = httpProtocol + host + ':' + port + '/peerjs?key=' + key;
 }
 
 util.inherits(Socket, EventEmitter);
@@ -2364,9 +2364,11 @@ Socket.prototype._startWebSocket = function(id) {
   if (this._socket) {
     return;
   }
+  util.log('Socket Connect To: ',this._wsUrl);
 
-  this._socket = new WebSocket(this._wsUrl);
-
+  //this._socket = new WebSocket(this._wsUrl);
+  this._socket = io.connect(this._wsUrl);
+  /*
   this._socket.onmessage = function(event) {
     var data;
     try {
@@ -2377,9 +2379,32 @@ Socket.prototype._startWebSocket = function(id) {
     }
     self.emit('message', data);
   };
+  this._socket.on('connect',function() {
+    if (self._timeout) {
+      clearTimeout(self._timeout);
+      setTimeout(function(){
+        self._http.abort();
+        self._http = null;
+      }, 5000);
+    }
+    self._sendQueuedMessages();
+    util.log('Socket open');
+  });*/
+  this._socket.on('data',function(data) {
+    var message;
+	util.log('Socket open data');
+    try {
+      message = JSON.parse(data);
+    } catch(e) {
+      util.log('Invalid server message', data);
+      return;
+    }
+    self.emit('message', message);
+  });
 
   // Take care of the queue of connections if necessary and make sure Peer knows
   // socket is open.
+  /*
   this._socket.onopen = function() {
     if (self._timeout) {
       clearTimeout(self._timeout);
@@ -2390,7 +2415,7 @@ Socket.prototype._startWebSocket = function(id) {
     }
     self._sendQueuedMessages();
     util.log('Socket open');
-  };
+  };*/
 }
 
 /** Start XHR streaming. */
@@ -2476,7 +2501,7 @@ Socket.prototype._setHTTPTimeout = function() {
 
 /** Is the websocket currently open? */
 Socket.prototype._wsOpen = function() {
-  return this._socket && this._socket.readyState == 1;
+  return this._socket;
 }
 
 /** Send queued messages. */
@@ -2506,8 +2531,10 @@ Socket.prototype.send = function(data) {
 
   var message = JSON.stringify(data);
   if (this._wsOpen()) {
-    this._socket.send(message);
+	util.log('Send Message Using SocketIO');
+    this._socket.emit('message',message);
   } else {
+	util.log('Send Message using XHR: ');
     var http = new XMLHttpRequest();
     var url = this._httpUrl + '/' + data.type.toLowerCase();
     http.open('post', url, true);
