@@ -2,7 +2,6 @@
 /deps
 /docs
 /examples
-/lib
 LICENSE
 Makefile
 /node_modules
