@@ -1,6 +1,7 @@
 *.md
 /deps
 /docs
+/dist
 /examples
 LICENSE
 Makefile
