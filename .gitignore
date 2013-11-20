@@ -1,10 +1,10 @@
 *.md
-/deps
-/docs
-/dist
-/examples
+deps
+docs
+dist
+examples
 LICENSE
 Makefile
-/node_modules
+node_modules
 README.md
-/test
+test
